@@ -74,7 +74,7 @@ $(document).ready(() => {
                 console.log(`Contact role entry created with ID: ${contactRoleId}`);
 
                 await associateContactRoleWithContact(contactRoleId, contact.id);
-                await associateContactRoleWithDeal(contactRoleId, entityId);
+                //await associateContactRoleWithDeal(contactRoleId, entityId);
             } else {
                 console.log("No contact found, showing additional fields.");
                 swal("לידיעתך", "לא נמצא ת״ז מזהה במערכת: " + idInput + ". אנא מלא פרטים עבור איש קשר פוטנציאלי חדש זה.", "info");
@@ -120,7 +120,7 @@ $(document).ready(() => {
                             console.log(`Contact role entry created with ID: ${newContactRoleId}`);
 
                             await associateContactRoleWithContact(newContactRoleId, newContactId);
-                            await associateContactRoleWithDeal(newContactRoleId, entityId);
+                            //await associateContactRoleWithDeal(newContactRoleId, entityId);
                           } else {
                             console.error("Failed to create contact role entry");
                           }
@@ -380,46 +380,38 @@ async function associateContactRoleWithContact(contactRoleId, contactId) {
   try {
       let response = await ZOHO.CRM.API.updateRecord(config);
       console.log("Contact Role associated with Contact:", response.data);
+      // Display success notification
+      swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לאיש קשר.', 'success')
+      .then(() => {
+        // Close and reload the popup upon confirming the success message
+        ZOHO.CRM.UI.Popup.closeReload();
+      });
       return response.data;
   } catch (error) {
       console.error("Failed to associate Contact Role with Contact:", error);
+      swal('Error', 'לשייך תפקיד איש קשר לאיש קשר נכשל.', 'error');
       throw error;
   }
 }
 //--------------------------------------------------------------------------------
-async function associateContactRoleWithDeal(contactRoleId, dealId) {
-  try {
-    const stringDealId = dealId.toString();
-      let response = await ZOHO.CRM.API.updateRecord({
-          Entity: "Contacts_Roles",
-          RecordID: contactRoleId,
-          APIData: {
-              "id": contactRoleId,
-              "Deal": stringDealId
-          }
-      });
-      console.log("Contact Role associated with Deal:", response.data);
-      swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לעסקה ולאיש קשר.', 'success')
-      .then(() => {
-        ZOHO.CRM.UI.Popup.closeReload();
-      });
-  } catch (error) {
-      console.error("Failed to associate Contact Role with Deal:", error);
-      throw error;
-  }
-}
-
-
-
-/*
-lowercaseId = id.toLowerCase();
-uppercaseId = id.toUpperCase();
-lowerMatchingId = zoho.crm.searchRecords("Contacts","(Id_No:equals:" + lowercaseId + ")");
-if ( lowerMatchingId == null ) 
-{
-	upperMatchingId = zoho.crm.searchRecords("Contacts","(Id_No:equals:" + uppercaseId + ")");
-}
-info matchingId.size();
-info matchingId;
-return matchingId;
-*/
+// async function associateContactRoleWithDeal(contactRoleId, dealId) {
+//     try {
+//       const stringDealId = dealId.toString();
+//         let response = await ZOHO.CRM.API.updateRecord({
+//             Entity: "Contacts_Roles",
+//             RecordID: contactRoleId,
+//             APIData: {
+//                 "id": contactRoleId,
+//                 "Deal": stringDealId
+//             }
+//         });
+//         console.log("Contact Role associated with Deal:", response.data);
+//         swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לעסקה ולאיש קשר.', 'success')
+//         .then(() => {
+//           ZOHO.CRM.UI.Popup.closeReload();
+//         });
+//     } catch (error) {
+//         console.error("Failed to associate Contact Role with Deal:", error);
+//         throw error;
+//     }
+//   }
