@@ -5,7 +5,7 @@ ZOHO.embeddedApp.on("PageLoad", async (data) => {
     entityId = data.EntityId;
     const entityName = data.Entity;
 
-    ZOHO.CRM.UI.Resize({ height: "600", width: "800" });
+    ZOHO.CRM.UI.Resize({ height: "50%", width: "20%" });
 
     try {
         const entityData = await ZOHO.CRM.API.getRecord({
@@ -146,6 +146,14 @@ $(document).ready(() => {
             console.error('An error occurred:', error);
         }
     });
+
+    $(document).on('keypress', '#idInput', function (e) {
+        if (e.which === 13) {
+            console.log("Enter key pressed");
+            e.preventDefault(); // Enter key pressed
+            $('#confirmButton').click();
+        }
+    });
 });
 
 //--------------------------------------------------------------------------------
@@ -169,8 +177,10 @@ function isValidId(id) {
 }
 //--------------------------------------------------------------------------------
 function isValidPassportId(id) {
+    console.log("Original ID:", id);
     id = String(id).trim();  // Ensure input is treated as a string and whitespace trimmed
-    
+    console.log("Trimmed ID:", id);
+
     // Check length constraints
     if (id.length < 1 || id.length > 20) {
         return {
@@ -181,6 +191,7 @@ function isValidPassportId(id) {
 
     // Check character constraints: only alphanumeric characters are allowed
     if (!/^[a-zA-Z0-9]+$/.test(id)) {
+        console.log("Character validation failed");
         return {
             valid: false,
             message: 'מזהה דרכון חייב להכיל רק אותיות ומספרים.'
@@ -188,6 +199,7 @@ function isValidPassportId(id) {
     }
 
     // If all checks are passed
+    console.log("ID is valid");
     return {
         valid: true,
         message: 'Passport ID is valid.'
@@ -242,35 +254,33 @@ function isValidName(firstName, lastName) {
 }
 //--------------------------------------------------------------------------------
 async function checkForExistingContact(id) {
-  let func_name = "testFindingIDs";
-  //id = id.toString();
-  let req_data = {
-      arguments: JSON.stringify({ id: id }),
-  };
-  try {
-      let data = await ZOHO.CRM.FUNCTIONS.execute(func_name, req_data);
-      if (data.details.output) {
-          let contactDetails = JSON.parse(data.details.output);
-          console.log("Parsed contact details:", contactDetails);
-          if (contactDetails.Id_No && contactDetails.Id_No === id) {
-              console.log("Matching ID found:", contactDetails.Id_No);
-              swal('הצלחה', 'איש קשר קיים נמצא במערכת.', 'success');
-              return contactDetails;
-          } else {
-              swal("Info", "No matching ID in the system found for: " + id + ". Please fill in details for this new potential contact.", "info"); // "No matching ID found for:
-              console.log("No matching ID found for:", id);
-              console.log("No matching ID found for:", id);
-              return null;
-          }
-      } else {
-          console.error("No output in data.details to parse:", data.details);
-          return null;
-      }
-  } catch (error) {
-      console.error("Error executing custom function:", error);
-      swal('Error', 'An error occurred while checking for existing contact.', 'error');
-      return null;
-  }
+    let func_name = "testFindingIDs";
+    console.log("Original ID for CRM check:", id);
+    //id = id.toLowerCase();
+    console.log("ID sent to CRM function:", id);
+    let req_data = {
+        arguments: JSON.stringify({ id: id }),
+    };
+    try {
+        let data = await ZOHO.CRM.FUNCTIONS.execute(func_name, req_data);
+        console.log("Raw data received from CRM:", data);
+
+        if (data.details.output) {
+            console.log("Output before parsing:", data.details.output);
+            let contactDetails = JSON.parse(data.details.output);
+            console.log("Parsed contact details:", contactDetails);
+            console.log("Matching ID found:", contactDetails.Id_No);
+            swal('הצלחה', 'איש קשר קיים נמצא במערכת.', 'success');
+            return contactDetails;
+        } else {
+            console.error("No output in data.details to parse:", data.details);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error executing custom function:", error);
+        swal('Error', 'An error occurred while checking for existing contact.', 'error');
+        return null;
+    }
 }
 //--------------------------------------------------------------------------------
 async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobile) {
