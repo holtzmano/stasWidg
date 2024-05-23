@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
   <script src="https://static.zohocdn.com/zohocrm/v2.0/sdk/3.0.0/sdk.js"></script>
   <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"
@@ -17,17 +18,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
 
-  <style></style>
+  <style>
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid #d4d4d4;
+      border-bottom: none;
+      border-top: none;
+      z-index: 99;
+      top: 100%; /* Place the dropdown right below the input field */
+      left: 0;
+      right: auto;
+      background-color: #fff;
+      max-height: 200px; /* Optional: limit the height */
+      overflow-y: auto; /* Optional: add a scrollbar if the list is too long */
+    }
+
+    .autocomplete-items div {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      border-bottom: 1px solid #d4d4d4;
+    }
+
+    .autocomplete-items div:hover {
+      background-color: #e9e9e9;
+    }
+
+    .autocomplete-active {
+      background-color: DodgerBlue !important;
+      color: #ffffff;
+    }
+  </style>
 </head>
 <body>
   <div id="widget-container">
     <h2>הוספת פוטנציאלי</h2>
     <form id="role-selection-form">
       <div class="input-group">
-          <label for="business" class="label">עסק:</label>
-          <select id="business" name="business">
-              <option value="">בחר עסק</option>
-          </select>
+          <label for="businessInput" class="label">עסק:</label>
+          <input type="text" id="businessInput" name="businessInput" autocomplete="off">
+          <div id="businessList" class="autocomplete-items"></div>
       </div>
       <div class="checkbox-group">
           <input type="checkbox" id="tenantCheckbox" name="role" value="tenant">

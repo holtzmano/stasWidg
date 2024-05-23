@@ -201,7 +201,34 @@ $(document).ready(() => {
             $('#confirmButton').click();
         }
     });
+
+    // Autocomplete logic for the business field with debouncing
+    let debounceTimer;
+    $('#businessInput').on('input', function() {
+        clearTimeout(debounceTimer);
+        const query = $(this).val().toLowerCase();
+        debounceTimer = setTimeout(() => {
+            filterBusinessOptions(query);
+        }, 300); // Delay of 300ms
+    });
+
+    $(document).on('click', '#businessList div', function () {
+        const accountName = $(this).text();
+        const accountId = $(this).data('id');
+        $('#businessInput').val(accountName);
+        $('#businessList').hide();
+        $('#businessInput').data('selected-id', accountId); // Store the selected account ID
+    });
+
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('businessInput, #businessList').length) {
+            $('#businessList').hide();
+        }
+    });
 });
+
+// Declare the accounts variable globally to store the fetched accounts data
+let accounts = [];
 
 //--------------------------------------------------------------------------------
 function isValidId(id) {
@@ -336,7 +363,7 @@ async function checkForExistingContact(id) {
 //--------------------------------------------------------------------------------
 async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobile) {
     console.log("entered createContactRoleEntry function");
-    const businessId = $('#business').val(); // Get the selected business ID
+    const businessId = $('#businessInput').data('selected-id'); // Get the selected business ID
     console.log("Selected business ID:", businessId);
     console.log("passportCheckbox:", passportCheckbox);
     console.log("mobile:", mobile);
@@ -492,19 +519,57 @@ async function associateContactRoleWithContact(contactRoleId, contactId) {
 }
 //--------------------------------------------------------------------------------
 async function populateBusinessField() {
-    try {
-        const response = await ZOHO.CRM.API.getAllRecords({ Entity: "Accounts" });
-        console.log("Accounts data:", response.data);
-        const accounts = response.data;
-
-        const businessField = $('#business');
-        businessField.empty(); // Clear existing options
-
-        businessField.append('<option value="">בחר עסק</option>');
-        accounts.forEach(account => {
-            businessField.append(`<option value="${account.id}">${account.Account_Name}</option>`);
-        });
-    } catch (error) {
-        console.error('An error occurred:', error);
-    }
+    await fetchAllAccounts();
 }
+//--------------------------------------------------------------------------------
+// Function to filter and display matching options
+function filterBusinessOptions(query) {
+    const businessList = $('#businessList');
+    businessList.empty().show();
+    accounts.forEach(account => {
+        if (account.Account_Name.toLowerCase().includes(query)) {
+            businessList.append(`<div data-id="${account.id}">${account.Account_Name}</div>`);
+        }
+    });
+
+    if (businessList.children().length === 0) {
+        businessList.hide();
+    }
+
+    // Reposition the list right below the input field
+    const inputOffset = $('#businessInput').offset();
+    const inputHeight = $('#businessInput').outerHeight();
+    const inputWidth = $('#businessInput').outerWidth();
+    businessList.css({
+        top: inputOffset.top + inputHeight,
+        left: inputOffset.left - 10,
+        width: inputWidth + 20
+    });
+}
+//--------------------------------------------------------------------------------
+async function fetchAllAccounts() {
+    let page = 1;
+    let moreRecords = true;
+
+    while (moreRecords) {
+        try {
+            const response = await ZOHO.CRM.API.getAllRecords({
+                Entity: "Accounts",
+                page: page,
+                per_page: 200
+            });
+
+            if (response.data.length > 0) {
+                accounts = accounts.concat(response.data);
+                page++;
+            } else {
+                moreRecords = false;
+            }
+        } catch (error) {
+            console.error('An error occurred while fetching accounts:', error);
+            moreRecords = false;
+        }
+    }
+    console.log("Fetched all accounts:", accounts);
+}
+//--------------------------------------------------------------------------------
