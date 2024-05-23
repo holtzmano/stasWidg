@@ -17,6 +17,9 @@ ZOHO.embeddedApp.on("PageLoad", async (data) => {
         console.log(entityData.data);
         const entityDetail = entityData.data[0];
 
+        // Populate the business field with available options
+        await populateBusinessField();
+
         LoadWidget(entityDetail);
 
         $("#selectButton").click(() => Submit(entityDetail));
@@ -333,7 +336,8 @@ async function checkForExistingContact(id) {
 //--------------------------------------------------------------------------------
 async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobile) {
     console.log("entered createContactRoleEntry function");
-    //   let passportCheckbox = $('#passportCheckbox').is(':checked');
+    const businessId = $('#business').val(); // Get the selected business ID
+    console.log("Selected business ID:", businessId);
     console.log("passportCheckbox:", passportCheckbox);
     console.log("mobile:", mobile);
     console.log("Full Name before validation:", fullName);
@@ -357,6 +361,7 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
         Full Name: ${fullName}
         Passport Checkbox: ${passportCheckbox}
         Mobile: ${mobile}
+        Business ID: ${businessId}
         Timestamp: ${new Date().toISOString()}
     `;
 
@@ -368,7 +373,8 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
             full_name: fullName,
             Passport: passportCheckbox,
             Mobile: mobile,
-            Log_Details: logDetails
+            Log_Details: logDetails,
+            Account: businessId
         },
         Trigger: ["workflow", "blueprint"]
     };
@@ -485,24 +491,20 @@ async function associateContactRoleWithContact(contactRoleId, contactId) {
     }
 }
 //--------------------------------------------------------------------------------
-// async function associateContactRoleWithDeal(contactRoleId, dealId) {
-//     try {
-//       const stringDealId = dealId.toString();
-//         let response = await ZOHO.CRM.API.updateRecord({
-//             Entity: "Contacts_Roles",
-//             RecordID: contactRoleId,
-//             APIData: {
-//                 "id": contactRoleId,
-//                 "Deal": stringDealId
-//             }
-//         });
-//         console.log("Contact Role associated with Deal:", response.data);
-//         swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לעסקה ולאיש קשר.', 'success')
-//         .then(() => {
-//           ZOHO.CRM.UI.Popup.closeReload();
-//         });
-//     } catch (error) {
-//         console.error("Failed to associate Contact Role with Deal:", error);
-//         throw error;
-//     }
-//   }
+async function populateBusinessField() {
+    try {
+        const response = await ZOHO.CRM.API.getAllRecords({ Entity: "Accounts" });
+        console.log("Accounts data:", response.data);
+        const accounts = response.data;
+
+        const businessField = $('#business');
+        businessField.empty(); // Clear existing options
+
+        businessField.append('<option value="">בחר עסק</option>');
+        accounts.forEach(account => {
+            businessField.append(`<option value="${account.id}">${account.Account_Name}</option>`);
+        });
+    } catch (error) {
+        console.error('An error occurred:', error);
+    }
+}
