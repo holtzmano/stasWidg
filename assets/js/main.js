@@ -54,9 +54,18 @@ $(document).ready(() => {
             const selectedRole = $('input[type="checkbox"][name="role"]:checked').val();
             const idInput = $('#idInput').val().trim();
             const passportCheckbox = $('#passportCheckbox').is(':checked');
+            const businessInput = $('#businessInput').val().trim();
+            const businessId = $('#businessInput').data('selected-id'); // Get the selected business ID
 
             if (!selectedRole) {
-                swal('Error', 'אנא בחר תפקיד.', 'error');
+                swal('שגיאה', 'אנא בחר תפקיד.', 'error');
+                return;
+            }
+
+            // Check if business input has text but no selected ID
+            if (businessInput && !businessId) {
+                swal('שגיאה', 'עליך לבחור עסק או להשאיר את השדה ריק.', 'error');
+                $confirmButton.prop('disabled', false);
                 return;
             }
 
@@ -71,7 +80,7 @@ $(document).ready(() => {
 
             //const idValidationResult = isValidId(idInput);
             if (!idInput || !idValidationResult.valid) {
-                swal('Error', idValidationResult.message || 'Please enter an ID.', 'error');
+                swal('שגיאה', idValidationResult.message || 'Please enter an ID.', 'error');
                 return;
             }
 
@@ -116,19 +125,19 @@ $(document).ready(() => {
                             const phoneNumber = $('#phoneNumber').val().trim();
 
                             if (!firstName || !lastName || !phoneNumber) {
-                                swal('תקלה', 'אנא ספק את פרטי הקשר המלאים.', 'error');
+                                swal('שגיאה', 'אנא ספק את פרטי הקשר המלאים.', 'error');
                                 return;
                             }
 
                             const phoneValidationResult = isValidPhoneNumber(phoneNumber);
                             if (!phoneValidationResult.isValid) {
-                                swal('תקלה', phoneValidationResult.message, 'error');
+                                swal('שגיאה', phoneValidationResult.message, 'error');
                                 return;
                             }
 
                             const nameValidationResult = isValidName(firstName, lastName);
                             if (!nameValidationResult.isValid) {
-                                swal('תקלה', nameValidationResult.message, 'error');
+                                swal('שגיאה', nameValidationResult.message, 'error');
                                 return;
                             }
 
@@ -163,7 +172,7 @@ $(document).ready(() => {
                                 }
                             } catch (error) {
                                 console.log('An error occurred:', error);
-                                swal('Error', 'An error occurred while creating the contact.', 'error');
+                                swal('שגיאה', 'An error occurred while creating the contact.', 'error');
                             }
                         } catch (error) {
                             console.error('An error occurred:', error);
@@ -356,7 +365,7 @@ async function checkForExistingContact(id) {
         }
     } catch (error) {
         console.error("Error executing custom function:", error);
-        swal('Error', 'An error occurred while checking for existing contact.', 'error');
+        swal('שגיאה', 'An error occurred while checking for existing contact.', 'error');
         return null;
     }
 }
@@ -513,7 +522,7 @@ async function associateContactRoleWithContact(contactRoleId, contactId) {
         return response.data;
     } catch (error) {
         console.error("Failed to associate Contact Role with Contact:", error);
-        swal('Error', 'לשייך תפקיד איש קשר לאיש קשר נכשל.', 'error');
+        swal('שגיאה', 'לשייך תפקיד איש קשר לאיש קשר נכשל.', 'error');
         throw error;
     }
 }
