@@ -412,7 +412,7 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
     const currentUser = await getCurrentUser();
     console.log("Current user details:", currentUser);
     console.log("Current user ID:", currentUser.id);
-    let currentUserId = currentUser.users[0].id; // ADD LET
+    let currentUserId = currentUser.users[0].id; 
     if (!currentUser) {
         console.error("Failed to get current user. Cannot create contact role.");
         return null;
