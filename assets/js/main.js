@@ -408,6 +408,16 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
         Timestamp: ${new Date().toISOString()}
     `;
 
+    // Get the current user details
+    const currentUser = await getCurrentUser();
+    console.log("Current user details:", currentUser);
+    console.log("Current user ID:", currentUser.id);
+    currentUserId = currentUser.users[0].id;
+    if (!currentUser) {
+        console.error("Failed to get current user. Cannot create contact role.");
+        return null;
+    }
+
     var contactRoleData = {
         ID_NO: id,
         Role: role,
@@ -415,8 +425,10 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
         Passport: passportCheckbox,
         Mobile: mobile,
         Log_Details: logDetails,
-        Account: businessId
+        Account: businessId,
+        Owner: currentUserId
     };
+    console.log("Contact role data:", contactRoleData);
 
     try {
         let response = await callCreateContactRoleFunction(contactRoleData);
@@ -643,3 +655,20 @@ async function callAssociateContactRoleWithContact(contactRoleId, contactId) {
         throw error;
     }
 }
+//--------------------------------------------------------------------------------
+async function getCurrentUser() {
+    try {
+        let response = await ZOHO.CRM.CONFIG.getCurrentUser();
+        if (response) {
+            return response;
+        } else {
+            console.error("Failed to fetch current user details:", response);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching current user details:", error);
+        throw error;
+    }
+}
+
+//--------------------------------------------------------------------------------
