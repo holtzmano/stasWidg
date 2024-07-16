@@ -96,7 +96,15 @@ $(document).ready(() => {
                     let mobile = contact.Mobile;
                     console.log("mobile:", mobile);
                     const crResponse = await createContactRoleEntry(idInput, selectedRole, contact.Full_Name, passportCheckbox, mobile);
-                    const contactRoleId = crResponse[0].details.id;
+                    console.log('Contact role creation response:', crResponse);
+                    if (crResponse && crResponse.data.id) {
+                        const contactRoleId = crResponse.data.id
+                        console.log(`Contact role entry created with ID: ${contactRoleId}`);
+                        await associateContactRoleWithContact(contactRoleId, contact.id);
+                        //await associateContactRoleWithDeal(contactRoleId, entityId);
+                    } else {
+                        console.error("Failed to create contact role entry or invalid response format");
+                    }
                     console.log(`Contact role entry created with ID: ${contactRoleId}`);
 
                     await associateContactRoleWithContact(contactRoleId, contact.id);
@@ -158,14 +166,13 @@ $(document).ready(() => {
                                     console.log("mobile:", mobile);
                                     const newCrResponse = await createContactRoleEntry(idInput, selectedRole, fullName, passportCheckbox, mobile);
                                     console.log('Contact role creation response:', newCrResponse);
-                                    if (newCrResponse && newCrResponse.length > 0) {
-                                        const newContactRoleId = newCrResponse[0].details.id;
+                                    if (newCrResponse) {
+                                        const newContactRoleId = newCrResponse.data.id;
                                         console.log(`Contact role entry created with ID: ${newContactRoleId}`);
-
                                         await associateContactRoleWithContact(newContactRoleId, newContactId);
                                         //await associateContactRoleWithDeal(newContactRoleId, entityId);
                                     } else {
-                                        console.error("Failed to create contact role entry");
+                                        console.error("Failed to create contact role entry or invalid response format");
                                     }
                                 } else {
                                     console.error("Failed to create contact");
@@ -401,23 +408,37 @@ async function createContactRoleEntry(id, role, fullName, passportCheckbox, mobi
         Timestamp: ${new Date().toISOString()}
     `;
 
+    // Get the current user details
+    const currentUser = await getCurrentUser();
+    console.log("Current user details:", currentUser);
+    console.log("Current user ID:", currentUser.id);
+    let currentUserId = currentUser.users[0].id; 
+    if (!currentUser) {
+        console.error("Failed to get current user. Cannot create contact role.");
+        return null;
+    }
+
     var contactRoleData = {
-        Entity: 'Contacts_Roles',
-        APIData: {
-            ID_NO: id,
-            Role: role,
-            full_name: fullName,
-            Passport: passportCheckbox,
-            Mobile: mobile,
-            Log_Details: logDetails,
-            Account: businessId
-        },
-        Trigger: ["workflow", "blueprint"]
+        ID_NO: id,
+        Role: role,
+        full_name: fullName,
+        Passport: passportCheckbox,
+        Mobile: mobile,
+        Log_Details: logDetails,
+        Account: businessId,
+        Owner: currentUserId
     };
+    console.log("Contact role data:", contactRoleData);
+
     try {
-        let response = await ZOHO.CRM.API.insertRecord(contactRoleData);
+        let response = await callCreateContactRoleFunction(contactRoleData);
         console.log("Contact role entry created response:", response);
-        return response.data;
+        if (response && response.data.id) {
+            return response;
+        } else {
+            console.error("Invalid response structure:", response);
+            return null;
+        }
     } catch (error) {
         console.log('An error occurred:', error);
         throw error;
@@ -501,31 +522,29 @@ function showAdditionalInputFields() {
 }
 //--------------------------------------------------------------------------------
 async function associateContactRoleWithContact(contactRoleId, contactId) {
-    var config = {
-        Entity: "Contacts_Roles",
-        RecordID: contactRoleId,
-        APIData: {
-            "id": contactRoleId,
-            "Contact": contactId
-        },
-        Trigger: ["workflow", "blueprint"]
-    };
     try {
-        let response = await ZOHO.CRM.API.updateRecord(config);
-        console.log("Contact Role associated with Contact:", response.data);
-        // Display success notification
-        swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לאיש קשר.', 'success')
-            .then(() => {
-                // Close and reload the popup upon confirming the success message
-                ZOHO.CRM.UI.Popup.closeReload();
-            });
-        return response.data;
+        let response = await callAssociateContactRoleWithContact(contactRoleId, contactId);
+        console.log("Contact Role associated with Contact:", response);
+        if (response && response.data.id) {
+            // Display success notification
+            swal('הצלחה', 'נוצר תפקיד איש קשר הקשור לאיש קשר.', 'success')
+                .then(() => {
+                    // Close and reload the popup upon confirming the success message
+                    ZOHO.CRM.UI.Popup.closeReload();
+                });
+            return response;
+        } else {
+            console.error("Failed to associate Contact Role with Contact:", response);
+            swal('שגיאה', 'לשייך תפקיד איש קשר לאיש קשר נכשל.', 'error');
+            return null;
+        }
     } catch (error) {
         console.error("Failed to associate Contact Role with Contact:", error);
         swal('שגיאה', 'לשייך תפקיד איש קשר לאיש קשר נכשל.', 'error');
         throw error;
     }
 }
+
 //--------------------------------------------------------------------------------
 async function populateBusinessField() {
     await fetchAllAccounts();
@@ -581,4 +600,75 @@ async function fetchAllAccounts() {
     }
     console.log("Fetched all accounts:", accounts);
 }
+//--------------------------------------------------------------------------------
+async function callCreateContactRoleFunction(contactRoleData) {
+    let func_name = "createcontactrole";
+    console.log("Contact Role Data for CRM function:", contactRoleData);
+
+    let req_data = {
+        arguments: JSON.stringify({ contactRoleData: contactRoleData })
+    };
+
+    try {
+        let data = await ZOHO.CRM.FUNCTIONS.execute(func_name, req_data);
+        console.log("Raw data received from CRM:", data);
+
+        if (data.details && data.details.output) {
+            console.log("Output before parsing:", data.details.output);
+            let response = JSON.parse(data.details.output);
+            console.log("Parsed response:", response);
+            return response; // Return the parsed response directly
+        } else {
+            console.error("No output in data.details to parse:", data.details);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error executing custom function:", error);
+        throw error;
+    }
+}
+//--------------------------------------------------------------------------------
+async function callAssociateContactRoleWithContact(contactRoleId, contactId) {
+    let func_name = "associatecontactrolewithcontact"; 
+    console.log("Contact Role ID for CRM function:", contactRoleId);
+    console.log("Contact ID for CRM function:", contactId);
+
+    let req_data = {
+        arguments: JSON.stringify({ contactRoleId: contactRoleId, contactId: contactId })
+    };
+
+    try {
+        let data = await ZOHO.CRM.FUNCTIONS.execute(func_name, req_data);
+        console.log("Raw data received from CRM:", data);
+
+        if (data.details && data.details.output) {
+            console.log("Output before parsing:", data.details.output);
+            let response = JSON.parse(data.details.output);
+            console.log("Parsed response:", response);
+            return response;
+        } else {
+            console.error("No output in data.details to parse:", data.details);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error executing custom function:", error);
+        throw error;
+    }
+}
+//--------------------------------------------------------------------------------
+async function getCurrentUser() {
+    try {
+        let response = await ZOHO.CRM.CONFIG.getCurrentUser();
+        if (response) {
+            return response;
+        } else {
+            console.error("Failed to fetch current user details:", response);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching current user details:", error);
+        throw error;
+    }
+}
+
 //--------------------------------------------------------------------------------
